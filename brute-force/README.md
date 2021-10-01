@@ -1,5 +1,7 @@
 # Brute force
 
+## Challenge
+
 > - A 7z.zip file was found on a device belonging to Leif Kåre Olsen. The file appears to be password protected.
 > - Find the correct password to unpack the file and recover the contents.
 > - The flag is a sender email address.
