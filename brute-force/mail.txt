@@ -1,0 +1,14 @@
+From: james.s@protonmail.com
+Date: Thursday, September 9, 2021 03:20 PM
+To: frank@kripos.no
+Subject: Decompiling APK
+
+Hi,
+
+You should take a look at this link regarding APK:
+https://stackoverflow.com/questions/21010367/how-to-decompile-an-apk-or-dex-file-on-
+android-platform
+
+
+James
+
