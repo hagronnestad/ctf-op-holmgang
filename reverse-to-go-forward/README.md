@@ -46,29 +46,90 @@ public interface ChatAPIInterface {
 }
 ```
 
-Started reverse enggineering the `login` method.
+Started reverse engineering the `login` method.
 
 ```java
-    private void login(String str) {
-        this.chatAPIInterface.doLogin("Basic " + Base64.getEncoder().encodeToString((getResources().getString(C1316R.string.ricochat_user) + ":" + str).getBytes(StandardCharsets.UTF_8)), userAgent, this.mAndroidId).enqueue(new Callback<Login>() {
-            /* class rocks.gojira.ricochat.ChatActivity.C13062 */
+private void login(String str) {
+    this.chatAPIInterface.doLogin("Basic " + Base64.getEncoder().encodeToString((getResources().getString(C1316R.string.ricochat_user) + ":" + str).getBytes(StandardCharsets.UTF_8)), userAgent, this.mAndroidId).enqueue(new Callback<Login>() {
+        /* class rocks.gojira.ricochat.ChatActivity.C13062 */
 
-    // ... ABBREVIATED
+// ... ABBREVIATED
 ```
 
-Tried to login. `Authorization` header is not correct here, it's just an example.
+This code AES encrypts `mResultText.getText()` and compares it to the `C1316R.string.ricochat_key` and a regex pattern. If they match the Chat activity is started with `CHAT_TOKEN` set to the cipher text of `mFormulaText.getText()` inside the bundle.
+
+```java
+String str = "" + ((Object) this.mFormulaText.getText());
+Log.i("Calculator", str);
+if (KeyUtils.m48a("" + ((Object) this.mResultText.getText())).equals(getResources().getString(C1316R.string.ricochat_key)) && Pattern.compile("[−+÷×0-9costansin()]{3,6}").matcher(str).matches()) {
+    Intent intent = new Intent(this, ChatActivity.class);
+    intent.putExtra(CHAT_TOKEN, KeyUtils.m48a(str));
+    startActivity(intent);
+}
+```
+
+This means that we need to find the correct result AND the correct formula.
+
+First I misread the code and thought that the cipher text we needed to find was based on the formula only.
+
+The regex pattern check is the important part here, because it narrows down the formula for us. We know that the formula can only contain the following characters: `−+÷×0-9costansin()` and if I understand Java RegEx correctly, the formula needs to be 3-6 characters long.
+
+As I was completely focused on the formula at first, I started to generate every possible combination of formulas based on the allowed characters.
+
+To do this I put together and used the `Formula Permutations.linq` LINQPad script and generated a file for each combinations with length 3-6.
+
+```
+$ ll | grep allcom
+-rwxrwxrwx 1 hag hag      85316 Sep 30 19:38 allcombinations3.txt
+-rwxrwxrwx 1 hag hag    2592892 Sep 30 19:39 allcombinations4.txt
+-rwxrwxrwx 1 hag hag  152338432 Sep 30 22:41 allcombinations5.txt
+-rwxrwxrwx 1 hag hag 2187497472 Sep 30 19:39 allcombinations6.txt
+```
+
+`allcombinations6.txt` is HUGE (>2GB)! Only `allcombinations3.txt` is included in the repo for demonstrations purposes.
+
+At this point I converted the `KeyUtils` class from Java to C# and I tested the `KeyUtils`-class in online Java runners to make sure that cipertexts produced was the same.
+
+Then I started to bruteforce all the formula permutations against the key in the app, but as mentioned, the formula is never checked against the key in the app, only the result is.
+
+Then I finally realized that I've misread the code and needed to find the result that matched the key, not the formula.
+
+Not realizing I could just decrypt the key in the app to find the expected result, I started to bruteforce the result. Look at `BruteforceResult()` in the AESSolver-project. Anyway; I did get a match this time; `42`.
+
+Output from AESSolver:
+```
+Result MATCH! N: 42, AES: 3FE58FE3DD35BBA4CD63D62E4FFFD8D2
+```
+
+I finally got past the Calculator activity and into the Chat activity, but I still needed to find the expected formula, because that is the key needed to log into the API.
+
+I could use my prebuilt formula permutations from before and use them as input to an expression solver and find all the formulas that results in `42`, then I could bruteforce all the matcing formulas.
+
+However, I was a bit desperate at this point at just started to type in formulas in the app that would result in `42`.
+
+I tried:
+- 21+21
+- 84÷2
+- 168÷4
+
+I got lucky! `168÷4` was the correct formula, the app logged me in.
+
+That formula can be found in `allcombinations5.txt`, so my initial thought would also work.
+
+I used `Console.WriteLine(AesEncrypt("168÷4"));` which gives the cipher text `6CAF88722B28BF597C69C952E1E8E8D9`.
+
+I entered that into Postman as shown below:
+
+![](001-login.png "")
+
+"Basic Auth" is just `base64({user}:{pass})`:
 
 ```bash
-curl --location --request GET 'https://gojira.rocks/api/v1/login' \
---header 'User-Agent: RicoChat Client' \
---header 'AndroidId: android_id' \
---header 'Authorization: Basic bGtvOnBhc3N3b3Jk'
+$ echo -n "lko:6CAF88722B28BF597C69C952E1E8E8D9" | base64
+bGtvOjZDQUY4ODcyMkIyOEJGNTk3QzY5Qzk1MkUxRThFOEQ5
 ```
 
-```c
-// TODO: Fill in all the blanks and add files.
-```
-
+The request from Postman as a `curl`-command:
 
 ```bash
 curl --location --request GET 'https://gojira.rocks/api/v1/login' \
@@ -77,7 +138,7 @@ curl --location --request GET 'https://gojira.rocks/api/v1/login' \
 --header 'Authorization: Basic bGtvOjZDQUY4ODcyMkIyOEJGNTk3QzY5Qzk1MkUxRThFOEQ5'
 ```
 
-Got a successful login!
+I got a successful login!
 
 Result:
 ```json
