@@ -61,3 +61,10 @@ My guess is that there might be something embedded in the image.
 > You might need a ressurected tool to extract the hidden message.
 
 There must be some tool that I haven't tried. I tried to use the clue in Google. I Google'd for `ressurected` (and `resurrected`) combined with different steg terms, but didn't find anything.
+
+
+## Solution
+
+I did not solve this challenge within the time limit. During the walkthrough afterwards I learned that the tool in question is; `outguess` from `https://github.com/resurrecting-open-source-projects/outguess`.
+
+Putting this in here for the future.
